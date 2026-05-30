@@ -1,0 +1,43 @@
+# Dependency directories
+/node_modules
+/jspm_packages
+
+# Next.js build and cache
+/.next
+/out
+
+# Production build output
+/build
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+*.log
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# IDE settings
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Local project data (Runway assets & local script config)
+/local_project_data/
+/current_video.json
+/current_video_fixed.json
+/*.mp4
+/*.zip
+
+# Temporary scripts
+/cleanup.ps1
+/search_log.js
+/search_results.txt
+/setup.ps1
