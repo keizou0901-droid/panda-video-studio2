@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
+const myDriveFolderName = String.fromCharCode(
+  0x30de,
+  0x30a4,
+  0x30c9,
+  0x30e9,
+  0x30a4,
+  0x30d6,
+);
+
 // CORSヘッダーを設定する共通関数
 function corsHeaders(response: NextResponse) {
   response.headers.set('Access-Control-Allow-Origin', '*');
@@ -39,6 +48,7 @@ export async function GET(request: NextRequest) {
     let gDrivePath = null;
     for (const d of drives) {
       const pathsToTry = [
+        path.join(`${d}:`, myDriveFolderName, 'panda_trip_studio_data'),
         path.join(`${d}:`, 'マイドライブ', 'panda_trip_studio_data'),
         path.join(`${d}:`, 'My Drive', 'panda_trip_studio_data'),
         path.join(`${d}:`, 'panda_trip_studio_data'),
