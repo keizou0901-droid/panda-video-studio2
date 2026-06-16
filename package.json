@@ -11,7 +11,7 @@
     "publish": "node scripts/publish.js",
     "render:24fps": "remotion render src/remotion-entry-24fps.tsx Shorts24Fps output_24fps.mp4 --props=local_project_data/current_video.json --concurrency=2",
     "render:24fps:official": "remotion render src/remotion-entry-24fps-official.tsx Shorts24FpsOfficial output_24fps_official.mp4 --props=local_project_data/current_video_24fps.json --concurrency=2",
-    "render:checkpoint:video-only": "set NEXT_PUBLIC_ASSET_ORIGIN=http://localhost:3002&& remotion render src/remotion-entry-24fps-official.tsx Shorts24FpsOfficial \"G:/??????/panda_trip_studio_data/demo-project/????/01_????/01_????.mp4\" --props=\"G:/??????/panda_trip_studio_data/demo-project/????/01_????/current_video.json\" --concurrency=2",
+    "render:checkpoint:video-only": "set NEXT_PUBLIC_ASSET_ORIGIN=http://localhost:3002&& remotion render src/remotion-entry-24fps-official.tsx Shorts24FpsOfficial \"G:/マイドライブ/panda_trip_studio_data/demo-project/02_working/01_video_only/01_video_only.mp4\" --props=\"G:/マイドライブ/panda_trip_studio_data/demo-project/02_working/01_video_only/current_video.json\" --concurrency=2",
     "prepare:checkpoint:adjusted": "node scripts/prepare-adjusted-only.js",
     "prepare:checkpoint:subtitles": "node scripts/prepare-subtitles-only.js"
   },

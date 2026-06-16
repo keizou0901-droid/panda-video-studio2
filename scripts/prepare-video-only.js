@@ -6,19 +6,19 @@ const FPS = 24;
 const IMAGE_FRAMES = FPS * 3;
 const PROJECT_ID = process.argv[2] || 'demo-project';
 const DRIVE_ROOT = 'G:\\マイドライブ\\panda_trip_studio_data';
-const WORKING_FOLDER = '②作成中';
-const CHECKPOINT_FOLDER = '01_映像のみ';
+const WORKING_FOLDER = '02_working';
+const LEGACY_WORKING_FOLDER = '②作成中';
+const CHECKPOINT_FOLDER = '01_video_only';
 const REAR_PROJECT_DIR = 'C:\\Users\\User\\panda\\panda-video-studio2';
 
 const VIDEO_EXTENSIONS = new Set(['.mp4', '.mov', '.webm']);
 const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp']);
 
-const inputPlanPath = path.join(
-  DRIVE_ROOT,
-  PROJECT_ID,
-  WORKING_FOLDER,
-  'production-plan.yaml',
-);
+const inputPlanCandidates = [
+  path.join(DRIVE_ROOT, PROJECT_ID, WORKING_FOLDER, 'production-plan.yaml'),
+  path.join(DRIVE_ROOT, PROJECT_ID, LEGACY_WORKING_FOLDER, 'production-plan.yaml'),
+];
+const inputPlanPath = inputPlanCandidates.find((candidate) => fs.existsSync(candidate)) ?? inputPlanCandidates[0];
 const outputDir = path.join(
   DRIVE_ROOT,
   PROJECT_ID,
@@ -230,7 +230,7 @@ const renderCommand = () =>
 
 const main = () => {
   if (!fs.existsSync(inputPlanPath)) {
-    throw new Error(`production-plan.yaml was not found: ${inputPlanPath}`);
+    throw new Error(`production-plan.yaml was not found: ${inputPlanCandidates.join(' or ')}`);
   }
 
   const yamlText = fs.readFileSync(inputPlanPath, 'utf8');

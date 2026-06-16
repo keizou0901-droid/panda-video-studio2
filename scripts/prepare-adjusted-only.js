@@ -3,12 +3,15 @@ const path = require('path');
 
 const PROJECT_ID = process.argv[2] || 'demo-project';
 const DRIVE_ROOT = 'G:\\マイドライブ\\panda_trip_studio_data';
-const WORKING_FOLDER = '②作成中';
-const CHECKPOINT_FOLDER = '04_尺調整版';
+const WORKING_FOLDER = '02_working';
+const LEGACY_WORKING_FOLDER = '②作成中';
+const CHECKPOINT_FOLDER = '04_adjusted';
 const REAR_PROJECT_DIR = 'C:\\Users\\User\\panda\\panda-video-studio2';
 
 const driveWorkingDir = path.join(DRIVE_ROOT, PROJECT_ID, WORKING_FOLDER);
+const legacyDriveWorkingDir = path.join(DRIVE_ROOT, PROJECT_ID, LEGACY_WORKING_FOLDER);
 const driveCurrentVideoPath = path.join(driveWorkingDir, 'current_video_24fps.json');
+const legacyDriveCurrentVideoPath = path.join(legacyDriveWorkingDir, 'current_video_24fps.json');
 const localCurrentVideoPath = path.join(
   REAR_PROJECT_DIR,
   'local_project_data',
@@ -16,8 +19,14 @@ const localCurrentVideoPath = path.join(
 );
 const inputCurrentVideoPath = fs.existsSync(driveCurrentVideoPath)
   ? driveCurrentVideoPath
-  : localCurrentVideoPath;
-const inputPlanPath = path.join(driveWorkingDir, 'production-plan.yaml');
+  : fs.existsSync(legacyDriveCurrentVideoPath)
+    ? legacyDriveCurrentVideoPath
+    : localCurrentVideoPath;
+const inputPlanCandidates = [
+  path.join(driveWorkingDir, 'production-plan.yaml'),
+  path.join(legacyDriveWorkingDir, 'production-plan.yaml'),
+];
+const inputPlanPath = inputPlanCandidates.find((candidate) => fs.existsSync(candidate)) ?? inputPlanCandidates[0];
 
 const outputDir = path.join(driveWorkingDir, CHECKPOINT_FOLDER);
 const outputPlanPath = path.join(outputDir, 'production-plan.yaml');
@@ -25,9 +34,9 @@ const outputJsonPath = path.join(outputDir, 'current_video.json');
 const outputCommandPath = path.join(outputDir, 'render-command.txt');
 
 const renderOutputPath =
-  `G:/マイドライブ/panda_trip_studio_data/${PROJECT_ID}/②作成中/${CHECKPOINT_FOLDER}/${CHECKPOINT_FOLDER}.mp4`;
+  `G:/マイドライブ/panda_trip_studio_data/${PROJECT_ID}/02_working/${CHECKPOINT_FOLDER}/${CHECKPOINT_FOLDER}.mp4`;
 const renderPropsPath =
-  `G:/マイドライブ/panda_trip_studio_data/${PROJECT_ID}/②作成中/${CHECKPOINT_FOLDER}/current_video.json`;
+  `G:/マイドライブ/panda_trip_studio_data/${PROJECT_ID}/02_working/${CHECKPOINT_FOLDER}/current_video.json`;
 
 const renderCommand = () =>
   [
@@ -43,7 +52,7 @@ const main = () => {
   }
 
   if (!fs.existsSync(inputPlanPath)) {
-    throw new Error(`production-plan.yaml was not found: ${inputPlanPath}`);
+    throw new Error(`production-plan.yaml was not found: ${inputPlanCandidates.join(' or ')}`);
   }
 
   const currentVideo = JSON.parse(fs.readFileSync(inputCurrentVideoPath, 'utf8'));
