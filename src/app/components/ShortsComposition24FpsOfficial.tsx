@@ -4,8 +4,8 @@ import React from 'react';
 import {
   AbsoluteFill,
   Img,
+  OffthreadVideo,
   Sequence,
-  Video,
   interpolate,
   useCurrentFrame,
 } from 'remotion';
@@ -176,7 +176,7 @@ const VideoRenderWithFadeIn: React.FC<{src: string}> = ({src}) => {
 
   return (
     <AbsoluteFill style={{opacity}}>
-      <Video
+      <OffthreadVideo
         src={src}
         muted
         style={{width: '100%', height: '100%', objectFit: 'cover'}}
@@ -204,7 +204,7 @@ const SceneMedia: React.FC<{scene: Scene24Fps; assets: string[]}> = ({
         style={{width: '100%', height: '100%', objectFit: 'cover'}}
       />
     ) : (
-      <Video
+      <OffthreadVideo
         src={assets[0]}
         muted
         style={{width: '100%', height: '100%', objectFit: 'cover'}}
@@ -234,7 +234,7 @@ const SceneMedia: React.FC<{scene: Scene24Fps; assets: string[]}> = ({
     <>
       <Sequence from={0} durationInFrames={firstDuration}>
         {assets[0] && (
-          <Video
+          <OffthreadVideo
             src={assets[0]}
             muted
             style={{width: '100%', height: '100%', objectFit: 'cover'}}
