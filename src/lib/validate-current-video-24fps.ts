@@ -16,6 +16,14 @@ export type Scene24Fps = {
   text_tracks?: TextTrack24Fps[];
 };
 
+export type SceneTransition24Fps = {
+  from_scene_id: string;
+  to_scene_id: string;
+  effect?: string;
+  duration_frames?: number;
+  source_bridge_id?: string;
+};
+
 export type CurrentVideo24FpsProps = {
   project_id?: string;
   meta?: {
@@ -26,6 +34,7 @@ export type CurrentVideo24FpsProps = {
     generator?: string;
   };
   scenes?: Record<string, Scene24Fps>;
+  scene_transitions?: SceneTransition24Fps[];
 };
 
 const validPatternTypes = new Set(['1', '2', '3']);
@@ -80,6 +89,29 @@ export const validateCurrentVideo24Fps = (
       errors.push(`${sceneId}.text_tracks must be an array.`);
     }
   });
+
+  if (props.scene_transitions !== undefined) {
+    if (!Array.isArray(props.scene_transitions)) {
+      errors.push('scene_transitions must be an array.');
+    } else {
+      props.scene_transitions.forEach((transition, index) => {
+        if (typeof transition.from_scene_id !== 'string' || transition.from_scene_id.trim() === '') {
+          errors.push(`scene_transitions[${index}].from_scene_id must be a non-empty string.`);
+        }
+
+        if (typeof transition.to_scene_id !== 'string' || transition.to_scene_id.trim() === '') {
+          errors.push(`scene_transitions[${index}].to_scene_id must be a non-empty string.`);
+        }
+
+        if (
+          transition.duration_frames !== undefined &&
+          !isFiniteZeroOrPositiveNumber(transition.duration_frames)
+        ) {
+          errors.push(`scene_transitions[${index}].duration_frames must be 0 or greater.`);
+        }
+      });
+    }
+  }
 
   if (errors.length > 0) {
     throw new Error(`Invalid current_video_24fps.json: ${errors.join(' ')}`);

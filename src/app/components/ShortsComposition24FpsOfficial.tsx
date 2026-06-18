@@ -12,6 +12,7 @@ import {
 import {
   CurrentVideo24FpsProps,
   Scene24Fps,
+  SceneTransition24Fps,
   TextTrack24Fps,
   validateCurrentVideo24Fps,
 } from '../../lib/validate-current-video-24fps';
@@ -138,6 +139,7 @@ const textStyles = `
 type SceneRenderProps = {
   scene: Scene24Fps;
   assets: string[];
+  transition?: SceneTransition24Fps;
 };
 
 const trackStartFrame = (track: TextTrack24Fps | undefined, fallback: number) =>
@@ -160,6 +162,9 @@ const getAssetExtension = (src: string) => {
 
 const isImageAsset = (src: string) =>
   ['.png', '.jpg', '.jpeg', '.webp'].includes(getAssetExtension(src));
+
+const shouldFadeSceneTransition = (transition: SceneTransition24Fps | undefined) =>
+  transition?.effect === 'fade' && (transition.duration_frames ?? 0) > 0;
 
 const splitTriviaLines = (text: string) =>
   text
@@ -248,17 +253,19 @@ const SceneMedia: React.FC<{scene: Scene24Fps; assets: string[]}> = ({
   );
 };
 
-const SceneRender: React.FC<SceneRenderProps> = ({scene, assets}) => {
+const SceneRender: React.FC<SceneRenderProps> = ({scene, assets, transition}) => {
   const frame = useCurrentFrame();
   const pandaQuote = scene.text_tracks?.find((track) => track.id === 'panda_quote');
   const sceneTitle = scene.text_tracks?.find((track) => track.id === 'scene_title');
   const trivia = scene.text_tracks?.find((track) => track.id === 'trivia');
   const triviaLines = trivia?.text ? splitTriviaLines(trivia.text) : [];
 
-  const opacity = interpolate(frame, [0, 6], [0, 1], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
+  const opacity = shouldFadeSceneTransition(transition)
+    ? interpolate(frame, [0, transition?.duration_frames ?? 6], [0, 1], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      })
+    : 1;
 
   return (
     <AbsoluteFill className="video-container" style={{opacity}}>
@@ -302,6 +309,12 @@ export const ShortsComposition24FpsOfficial: React.FC<CurrentVideo24FpsProps> = 
   const orderedScenes = Object.entries(video.scenes ?? {}).sort(
     ([, a], [, b]) => a.start_frame - b.start_frame,
   );
+  const transitionsByToScene = new Map(
+    (video.scene_transitions ?? []).map((transition) => [
+      transition.to_scene_id,
+      transition,
+    ]),
+  );
 
   return (
     <AbsoluteFill style={{backgroundColor: '#000'}}>
@@ -314,7 +327,11 @@ export const ShortsComposition24FpsOfficial: React.FC<CurrentVideo24FpsProps> = 
             from={scene.start_frame}
             durationInFrames={scene.duration_frames}
           >
-            <SceneRender scene={scene} assets={assets} />
+            <SceneRender
+              scene={scene}
+              assets={assets}
+              transition={transitionsByToScene.get(key)}
+            />
           </Sequence>
         );
       })}
