@@ -1,6 +1,9 @@
 'use client';
 
-import {useEffect, useMemo, useState} from 'react';
+import {Player, PlayerRef} from '@remotion/player';
+import {useEffect, useMemo, useRef, useState} from 'react';
+import {ShortsComposition24FpsOfficial} from './ShortsComposition24FpsOfficial';
+import {CurrentVideo24FpsProps} from '../../lib/validate-current-video-24fps';
 
 type SceneSummary = {
   id: string;
@@ -15,6 +18,7 @@ type LoadedVideo = {
   fps?: number;
   totalFrames?: number;
   scenes: SceneSummary[];
+  currentVideo: CurrentVideo24FpsProps;
 };
 
 type ProjectEntry = {
@@ -25,25 +29,16 @@ type ProjectEntry = {
   updatedAt: string;
 };
 
-type CurrentVideoJson = {
-  meta?: {
-    fps?: number;
-    total_duration_frames?: number;
-  };
-  scenes?: Record<
-    string,
-    {
-      start_frame?: number;
-      duration_frames?: number;
-      assets?: unknown[];
-    }
-  >;
-};
-
 export function ManualCurrentVideoLoader() {
+  const playerRef = useRef<PlayerRef>(null);
+  const lastObservedFrameRef = useRef(0);
+  const playbackStartTimeRef = useRef<number | null>(null);
+  const playbackStartFrameRef = useRef(0);
   const [projects, setProjects] = useState<ProjectEntry[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [loadedVideo, setLoadedVideo] = useState<LoadedVideo | null>(null);
+  const [previewFrame, setPreviewFrame] = useState(0);
+  const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
   const [isListing, setIsListing] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [driveRoot, setDriveRoot] = useState<string | null>(null);
@@ -99,6 +94,62 @@ export function ManualCurrentVideoLoader() {
     [projects, selectedProjectId],
   );
 
+  const previewFps = loadedVideo?.fps ?? 24;
+  const previewDurationFrames = loadedVideo?.totalFrames ?? 1;
+
+  useEffect(() => {
+    const player = playerRef.current;
+
+    if (!player || !loadedVideo) {
+      return;
+    }
+
+    const updateFrame = ({detail}: {detail: {frame: number}}) => {
+      lastObservedFrameRef.current = detail.frame;
+      setPreviewFrame(detail.frame);
+    };
+    player.addEventListener('frameupdate', updateFrame);
+    player.addEventListener('seeked', updateFrame);
+
+    return () => {
+      player.removeEventListener('frameupdate', updateFrame);
+      player.removeEventListener('seeked', updateFrame);
+    };
+  }, [loadedVideo]);
+
+  useEffect(() => {
+    if (!loadedVideo) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      const player = playerRef.current;
+
+      if (!player || !isPreviewPlaying) {
+        return;
+      }
+
+      const now = performance.now();
+      const playbackStartTime = playbackStartTimeRef.current ?? now;
+      const elapsedMs = now - playbackStartTime;
+      const elapsedFrames = Math.floor((elapsedMs / 1000) * previewFps);
+      const currentFrame = player.getCurrentFrame();
+      const targetFrame = playbackStartFrameRef.current + elapsedFrames;
+      const nextFrame = Math.min(
+        Math.max(currentFrame, lastObservedFrameRef.current, targetFrame),
+        previewDurationFrames - 1,
+      );
+
+      player.seekTo(nextFrame);
+      lastObservedFrameRef.current = nextFrame;
+      setPreviewFrame(nextFrame);
+    }, Math.max(16, Math.round(1000 / previewFps)));
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [isPreviewPlaying, loadedVideo, previewDurationFrames, previewFps]);
+
   const handleLoad = async () => {
     if (!selectedProjectId) {
       return;
@@ -116,7 +167,7 @@ export function ManualCurrentVideoLoader() {
       const payload = (await response.json()) as {
         projectId?: string;
         jsonPath?: string;
-        currentVideo?: CurrentVideoJson;
+        currentVideo?: CurrentVideo24FpsProps;
         error?: string;
       };
 
@@ -146,7 +197,13 @@ export function ManualCurrentVideoLoader() {
         fps: parsed.meta?.fps,
         totalFrames: parsed.meta?.total_duration_frames,
         scenes,
+        currentVideo: parsed,
       });
+      setPreviewFrame(0);
+      setIsPreviewPlaying(false);
+      lastObservedFrameRef.current = 0;
+      playbackStartTimeRef.current = null;
+      playbackStartFrameRef.current = 0;
       setError(null);
     } catch (loadError) {
       setLoadedVideo(null);
@@ -256,6 +313,84 @@ export function ManualCurrentVideoLoader() {
             ) : (
               <p className="mt-4 text-sm text-zinc-500">No scenes found.</p>
             )}
+          </div>
+        </div>
+      ) : null}
+
+      {loadedVideo ? (
+        <div className="mt-6 rounded-md border border-zinc-800 bg-zinc-950 p-4">
+          <div className="flex flex-col gap-2">
+            <h3 className="text-sm font-semibold">Preview</h3>
+            <p className="text-sm leading-6 text-zinc-400">
+              Browser preview using the loaded current_video_24fps.json. The
+              JSON is not edited or saved.
+            </p>
+          </div>
+          <div className="mt-4 flex justify-center">
+            <div className="w-full max-w-[360px] overflow-hidden rounded-md border border-zinc-800 bg-black">
+              <Player
+                ref={playerRef}
+                component={ShortsComposition24FpsOfficial}
+                compositionHeight={960}
+                compositionWidth={540}
+                controls
+                durationInFrames={previewDurationFrames}
+                fps={previewFps}
+                initiallyMuted
+                inputProps={loadedVideo.currentVideo}
+                style={{
+                  aspectRatio: '540 / 960',
+                  width: '100%',
+                }}
+              />
+            </div>
+          </div>
+          <div className="mt-3 text-center font-mono text-xs text-zinc-500">
+            frame {previewFrame.toLocaleString('en-US')} /{' '}
+            {previewDurationFrames.toLocaleString('en-US')} @ {previewFps}fps
+          </div>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <button
+              className="rounded-md border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-100 hover:border-zinc-500"
+              type="button"
+              onClick={() => {
+                playbackStartTimeRef.current = performance.now();
+                playbackStartFrameRef.current =
+                  playerRef.current?.getCurrentFrame() ?? previewFrame;
+                setIsPreviewPlaying(true);
+              }}
+            >
+              Play preview
+            </button>
+            <button
+              className="rounded-md border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-100 hover:border-zinc-500"
+              type="button"
+              onClick={() => {
+                playbackStartTimeRef.current = null;
+                setIsPreviewPlaying(false);
+              }}
+            >
+              Pause preview
+            </button>
+            {loadedVideo.scenes.slice(0, 3).map((scene) => (
+              <button
+                className="rounded-md border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-100 hover:border-zinc-500"
+                key={scene.id}
+                type="button"
+                onClick={() => {
+                  const frame = scene.startFrame ?? 0;
+                  playerRef.current?.seekTo(frame);
+                  lastObservedFrameRef.current = frame;
+                  playbackStartTimeRef.current = isPreviewPlaying
+                    ? performance.now()
+                    : null;
+                  playbackStartFrameRef.current = frame;
+                  setPreviewFrame(frame);
+                }}
+              >
+                {scene.id}
+              </button>
+            ))}
           </div>
         </div>
       ) : null}
