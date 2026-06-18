@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import {ManualCurrentVideoLoader} from './components/ManualCurrentVideoLoader';
 
 type CurrentVideoSummary = {
   exists: boolean;
@@ -132,6 +133,8 @@ export default function Home() {
             </pre>
           </div>
         </section>
+
+        <ManualCurrentVideoLoader />
       </div>
     </main>
   );
